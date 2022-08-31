@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">SquaredNews</string>
+    <string name="location">LOCATION</string>
+    <string name="search_placeholder">Search for news, topics…</string>
+    <string name="no_internet">No internet connection!</string>
+    <string name="choose_location">"Choose your location"</string>
+    <string name="filter_sources">"Filter by sources"</string>
+    <string name="retry_text">Try again</string>
+    <string name="apply">Apply</string>
+    <string name="apply_filter">Apply Filter</string>
+    <string name="unknown_date">"Unknown date"</string>
+    <string name="see_full_story">See full story</string>
+    <string name="end_of_feed">That\'s all for today.</string>
+    <string name="empty_news_feed">No news found. Try selecting a different country, or select different sources.</string>
+    <string name="empty_search_results">No search results found.</string>
+</resources>

@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "560862351878",
+    "project_id": "squarednews-5eb7f",
+    "storage_bucket": "squarednews-5eb7f.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:560862351878:android:aae882fd54b6ff8955e987",
+        "android_client_info": {
+          "package_name": "com.example.squarednews"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "560862351878-mcv06724vel63ufe7l7jufks8gemp8b8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.squarednews",
+            "certificate_hash": "6c216206d954e824ca6b3c897e4ed8cd2493bcc1"
+          }
+        },
+        {
+          "client_id": "560862351878-huln038ajgpf6rtjhaiassmud7g9cevg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAg7xOI60ZzHwJbyr6sGeCf4Sd0B9E1oR4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "560862351878-huln038ajgpf6rtjhaiassmud7g9cevg.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
