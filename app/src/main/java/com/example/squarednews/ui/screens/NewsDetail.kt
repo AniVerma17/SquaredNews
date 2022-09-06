@@ -3,9 +3,11 @@ package com.example.squarednews.ui.screens
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -33,15 +35,18 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun NewsDetail(viewModel: NewsViewModel) {
+fun NewsDetail(viewModel: NewsViewModel, onBackPress: () -> Unit) {
     val context = LocalContext.current
-    newsDetailView(viewModel.articleToDisplay) {
-        context.startActivity(Intent(Intent.ACTION_VIEW).setData(Uri.parse(it.link)))
-    }
+    newsDetailView(viewModel.articleToDisplay,
+        onShowStoryClicked = {
+            context.startActivity(Intent(Intent.ACTION_VIEW).setData(Uri.parse(it.link)))
+        },
+        onBackPress = onBackPress
+    )
 }
 
 @Composable
-fun newsDetailView(article: Article, onShowStoryClicked: (Article) -> Unit) {
+fun newsDetailView(article: Article, onShowStoryClicked: (Article) -> Unit, onBackPress: () -> Unit) {
     val dateTime = article.publishedDate?.let { date ->
         SimpleDateFormat(Constants.DATE_PATTERN).apply {
             timeZone = TimeZone.getTimeZone("IST")
@@ -54,8 +59,15 @@ fun newsDetailView(article: Article, onShowStoryClicked: (Article) -> Unit) {
         topBar = {
             TopAppBar(
                 backgroundColor = primaryMain,
-                contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 8.dp)
-            ) {}
+                contentPadding = PaddingValues(start = 4.dp, top = 16.dp, end = 16.dp, bottom = 4.dp)
+            ) {
+                Icon(imageVector = Icons.Default.KeyboardArrowLeft,
+                    contentDescription = "",
+                    tint = Color.White,
+                    modifier = Modifier.align(Alignment.Bottom).size(40.dp)
+                        .clickable { onBackPress() }
+                )
+            }
         }
     ) {
         Column(Modifier.fillMaxWidth()) {
@@ -124,5 +136,5 @@ fun newsDetailPreview() {
         id = "greg65teg34",
         summary = "No description",
         publishedDate = "2022-08-25 17:43:00"
-    )) {}
+    ), {}) {}
 }
