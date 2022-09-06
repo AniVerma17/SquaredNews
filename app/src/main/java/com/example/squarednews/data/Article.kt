@@ -36,7 +36,7 @@ data class Article(
     @field:Json(name = "rights")
     val rights: String? = "",
     @field:Json(name = "_score")
-    val score: Int? = 0,
+    val score: Double? = 0.0,
     @field:Json(name = "summary")
     val summary: String? = "",
     @field:Json(name = "title")
