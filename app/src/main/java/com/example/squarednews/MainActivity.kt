@@ -18,6 +18,8 @@ import androidx.navigation.*
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.paging.compose.LazyPagingItems
+import androidx.paging.compose.collectAsLazyPagingItems
 import com.example.squarednews.data.Article
 import com.example.squarednews.ui.screens.NewsDetail
 import com.example.squarednews.ui.screens.NewsFeed
@@ -40,9 +42,10 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colors.background
                 ) {
                     val navController = rememberNavController()
+                    val newsHeadlines: LazyPagingItems<Article> = viewModel.newsHeadlines.collectAsLazyPagingItems()
                     NavHost(navController = navController, startDestination = "newsfeed") {
                         composable("newsfeed") {
-                            NewsFeed(viewModel) {
+                            NewsFeed(viewModel, newsHeadlines) {
                                 viewModel.articleToDisplay = it
                                 navController.navigate("news_detail")
                             }
