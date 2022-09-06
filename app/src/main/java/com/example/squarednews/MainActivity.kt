@@ -51,7 +51,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                         composable("news_detail") {
-                            NewsDetail(viewModel)
+                            NewsDetail(viewModel) { navController.navigateUp() }
                         }
                     }
                 }
