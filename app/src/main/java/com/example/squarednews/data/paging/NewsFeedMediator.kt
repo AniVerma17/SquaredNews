@@ -21,7 +21,7 @@ class NewsFeedMediator(
     private val filters: Map<String, String>,
 ) : RemoteMediator<Int, Article>() {
     private val newsDao: NewsDao = newsDb.newsDao()
-    var page: Int = 1
+    private var page: Int = 1
 
     override suspend fun load(
         loadType: LoadType,
