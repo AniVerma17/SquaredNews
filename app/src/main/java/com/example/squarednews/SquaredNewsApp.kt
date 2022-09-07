@@ -13,7 +13,7 @@ class SquaredNewsApp : Application() {
         super.onCreate()
         FirebaseApp.initializeApp(applicationContext)
         Firebase.remoteConfig.apply {
-            setConfigSettingsAsync(remoteConfigSettings { minimumFetchIntervalInSeconds = 3600 })
+            setConfigSettingsAsync(remoteConfigSettings { minimumFetchIntervalInSeconds = 300 })
             setDefaultsAsync(R.xml.remote_config_defaults)
             fetchAndActivate()
         }
