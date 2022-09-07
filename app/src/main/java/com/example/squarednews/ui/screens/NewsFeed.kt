@@ -6,6 +6,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.*
@@ -62,11 +63,14 @@ fun NewsFeed(viewModel: NewsViewModel, itemClickAction: (Article) -> Unit) {
     val filtersSheetState = rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden)
     var isCountryFilterSelected by remember { mutableStateOf(true) }
 
+    val scrollState = rememberLazyListState()
+    val filterListState = rememberLazyListState()
+
     ModalBottomSheetLayout(
         sheetContent = {
-            var selectedCountry by remember { mutableStateOf("IN") }
-            Column(
-                Modifier
+            LazyColumn(
+                state = filterListState,
+                modifier = Modifier
                     .fillMaxWidth()
                     .verticalScroll(state = rememberScrollState())
                     .padding(horizontal = 16.dp, vertical = 4.dp),
@@ -181,6 +185,10 @@ fun NewsFeed(viewModel: NewsViewModel, itemClickAction: (Article) -> Unit) {
                         coroutineScope.launch {
                             filtersSheetState.show()
                         }
+                        coroutineScope.launch {
+                            filterListState.scrollToItem(0)
+                            filtersSheetState.show()
+                        }
                     },
                     backgroundColor = primaryMain,
                     contentColor = Color.White
@@ -235,7 +243,8 @@ fun NewsFeed(viewModel: NewsViewModel, itemClickAction: (Article) -> Unit) {
                     LazyColumn(
                         Modifier
                             .fillMaxSize()
-                            .padding(PaddingValues(horizontal = 24.dp, vertical = 16.dp)),
+                            .padding(PaddingValues(horizontal = 24.dp)),
+                        state = scrollState,
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         item {
