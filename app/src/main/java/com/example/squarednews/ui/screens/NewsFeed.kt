@@ -1,7 +1,10 @@
 package com.example.squarednews.ui.screens
 
 import android.annotation.SuppressLint
-import androidx.compose.foundation.*
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,18 +24,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.ExperimentalUnitApi
-import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.TextUnitType
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.*
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
-import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.items
 import coil.compose.AsyncImage
 import com.example.squarednews.Constants
@@ -41,6 +41,8 @@ import com.example.squarednews.R
 import com.example.squarednews.data.Article
 import com.example.squarednews.ui.theme.*
 import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.SwipeRefreshIndicator
+import com.google.accompanist.swiperefresh.SwipeRefreshState
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -49,22 +51,25 @@ import java.util.*
 @OptIn(ExperimentalMaterialApi::class, ExperimentalUnitApi::class)
 @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
 @Composable
-fun NewsFeed(viewModel: NewsViewModel, itemClickAction: (Article) -> Unit) {
-    var searchQuery by remember { mutableStateOf("") }
-    val isConnectedToNetwork by remember { mutableStateOf(true) }
-    val newsHeadlines: LazyPagingItems<Article> = viewModel.newsHeadlines.collectAsLazyPagingItems()
+fun NewsFeed(viewModel: NewsViewModel, newsHeadlines: LazyPagingItems<Article>, itemClickAction: (Article) -> Unit) {
+    val isConnectedToNetwork = viewModel.isNetworkConnected.collectAsState()
     val searchResult = viewModel.searchResults.collectAsState()
     val selectedCountryCode = viewModel.selectedCountry.collectAsState("")
-    val allSources = viewModel.availableSources.collectAsState()
+    var selectedCountry by remember { mutableStateOf("") }
 
     val sourcesList = viewModel.availableSources.collectAsState()
     val coroutineScope = rememberCoroutineScope()
-    val refreshState = rememberSwipeRefreshState(newsHeadlines.loadState.refresh is LoadState.Loading)
+    val refreshState = rememberSwipeRefreshState(false)
     val filtersSheetState = rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden)
     var isCountryFilterSelected by remember { mutableStateOf(true) }
 
     val scrollState = rememberLazyListState()
     val filterListState = rememberLazyListState()
+
+    LaunchedEffect(newsHeadlines.loadState) {
+        println("Refresh effect launched")
+        refreshState.isRefreshing = newsHeadlines.loadState.refresh is LoadState.Loading
+    }
 
     ModalBottomSheetLayout(
         sheetContent = {
@@ -72,65 +77,114 @@ fun NewsFeed(viewModel: NewsViewModel, itemClickAction: (Article) -> Unit) {
                 state = filterListState,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .verticalScroll(state = rememberScrollState())
                     .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Box(
-                    Modifier
-                        .width(40.dp)
-                        .height(4.dp)
-                        .clip(Shapes.small)
-                        .background(color = Color.LightGray)
-                        .align(Alignment.CenterHorizontally)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = if (isCountryFilterSelected) stringResource(R.string.choose_location) else stringResource(R.string.filter_sources),
-                    style = Typography.body1,
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Divider(thickness = 1.dp)
-                Spacer(modifier = Modifier.height(8.dp))
+                item {
+                    Box(
+                        Modifier
+                            .width(40.dp)
+                            .height(4.dp)
+                            .clip(Shapes.small)
+                            .background(color = Color.LightGray)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = if (isCountryFilterSelected)
+                            stringResource(R.string.choose_location)
+                        else
+                            stringResource(R.string.filter_sources),
+                        style = Typography.body1.copy(color = Color.DarkGray, fontWeight = FontWeight.Bold),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.Start)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Divider(thickness = 1.dp)
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
                 if (isCountryFilterSelected) {
-                    Constants.countries.forEach {
+                    items(Constants.countries.toList()) {
                         Row(Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(text = it.value)
+                            Text(text = it.second)
                             RadioButton(
-                                selected = selectedCountry == it.key,
+                                selected = selectedCountry == it.first,
                                 colors = RadioButtonDefaults.colors(
                                     selectedColor = primaryMain,
                                     unselectedColor = Color.LightGray
                                 ),
-                                onClick = { selectedCountry = it.key },
+                                onClick = { selectedCountry = it.first },
                                 interactionSource = MutableInteractionSource()
                             )
                         }
                     }
+                } else {
+                    if (sourcesList.value.isEmpty()) {
+                        item {
+                            CircularProgressIndicator(color = primaryMain, strokeWidth = 4.dp)
+                        }
+                    } else {
+                        items(sourcesList.value) { source ->
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(text = source, fontStyle = FontStyle.Italic, color = Color.Gray)
+                                Checkbox(
+                                    checked = source in viewModel.tempSelectedSources.value,
+                                    colors = CheckboxDefaults.colors(
+                                        checkedColor = primaryMain,
+                                        uncheckedColor = Color.LightGray
+                                    ),
+                                    onCheckedChange = {
+                                        viewModel.setSourceSelection(source, it)
+                                    },
+                                    interactionSource = MutableInteractionSource()
+                                )
+                            }
+                        }
+                    }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(
-                    onClick = {
-                        coroutineScope.launch { filtersSheetState.hide() }
-                        viewModel.setSelectedCountry(selectedCountry)
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth(0.4f)
-                        .align(Alignment.CenterHorizontally),
-                    colors = ButtonDefaults.buttonColors(
-                        backgroundColor = primaryMain,
-                        contentColor = Color.White
-                    ),
-                    elevation = ButtonDefaults.elevation(
-                        defaultElevation = 0.dp,
-                        pressedElevation = 0.dp
-                    ),
-                ) {
-                    Text(text = if (isCountryFilterSelected) stringResource(R.string.apply) else stringResource(R.string.apply_filter),
-                        style = Typography.body2
-                    )
+                item { Spacer(modifier = Modifier.height(16.dp)) }
+                item {
+                    Button(
+                        enabled = (isCountryFilterSelected && selectedCountry != selectedCountryCode.value)
+                                || (viewModel.selectedSources.value.toList() != viewModel.tempSelectedSources.value.toList()),
+                        onClick = {
+                            coroutineScope.launch {
+                                filtersSheetState.hide()
+                                println("cond 1: ${selectedCountry != selectedCountryCode.value}")
+                                println("cond 1: ${viewModel.selectedSources.value != viewModel.tempSelectedSources.value.toList()}")
+                                scrollState.scrollToItem(0)
+                            }
+                            if (isCountryFilterSelected) {
+                                viewModel.setSelectedCountry(selectedCountry)
+                            } else {
+                                viewModel.applySelectedSources()
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth(0.4f)
+                            .align(Alignment.CenterHorizontally),
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = primaryMain,
+                            contentColor = Color.White
+                        ),
+                        elevation = ButtonDefaults.elevation(
+                            defaultElevation = 0.dp,
+                            pressedElevation = 0.dp
+                        ),
+                    ) {
+                        Text(
+                            text = if (isCountryFilterSelected) stringResource(R.string.apply)
+                            else stringResource(R.string.apply_filter),
+                            style = Typography.body2
+                        )
+                    }
                 }
             }
         },
@@ -146,7 +200,11 @@ fun NewsFeed(viewModel: NewsViewModel, itemClickAction: (Article) -> Unit) {
                     contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 8.dp)
                 ) {
                     Text(text = stringResource(R.string.app_name),
-                        modifier = Modifier.align(Alignment.Bottom),
+                        modifier = Modifier
+                            .align(Alignment.Bottom)
+                            .clickable {
+                                coroutineScope.launch { scrollState.animateScrollToItem(0) }
+                            },
                         style = Typography.h6,
                         color = Color.White
                     )
@@ -160,9 +218,8 @@ fun NewsFeed(viewModel: NewsViewModel, itemClickAction: (Article) -> Unit) {
                         Row(verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.clickable {
                                 isCountryFilterSelected = true
-                                coroutineScope.launch {
-                                    filtersSheetState.show()
-                                }
+                                selectedCountry = selectedCountryCode.value
+                                coroutineScope.launch { filtersSheetState.show() }
                             }
                         ) {
                             Icon(imageVector = Icons.Filled.LocationOn,
@@ -182,8 +239,10 @@ fun NewsFeed(viewModel: NewsViewModel, itemClickAction: (Article) -> Unit) {
                 FloatingActionButton(
                     onClick = {
                         isCountryFilterSelected = false
-                        coroutineScope.launch {
-                            filtersSheetState.show()
+                        if (sourcesList.value.isEmpty()) {
+                            viewModel.getAllNewsSources()
+                        } else {
+                            viewModel.tempSelectedSources.value = viewModel.selectedSources.value
                         }
                         coroutineScope.launch {
                             filterListState.scrollToItem(0)
@@ -201,59 +260,36 @@ fun NewsFeed(viewModel: NewsViewModel, itemClickAction: (Article) -> Unit) {
         ) {
             SwipeRefresh(
                 state = refreshState,
-                swipeEnabled = searchQuery.isEmpty(),
+                swipeEnabled = viewModel.searchKeyword.value.isEmpty(),
+                indicator = { swipeRefreshState: SwipeRefreshState, dp: Dp ->
+                    SwipeRefreshIndicator(
+                        state = swipeRefreshState,
+                        refreshTriggerDistance = dp,
+                        backgroundColor = primaryMain,
+                        contentColor = Color.White
+                    )
+                },
                 onRefresh = { newsHeadlines.refresh() },
             ) {
-                LaunchedEffect(selectedCountryCode, sourcesList) {
+                BackHandler(filtersSheetState.isVisible) {
+                    coroutineScope.launch { filtersSheetState.hide() }
                 }
-                if(!isConnectedToNetwork) {
-                    Column(
-                        Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.img_no_connection),
-                            modifier = Modifier
-                                .width(128.dp)
-                                .aspectRatio(1.5f),
-                            contentDescription = ""
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = stringResource(R.string.no_internet),
-                            color = Color.DarkGray,
-                            fontWeight = FontWeight.Normal,
-                            fontSize = TextUnit(16f, TextUnitType.Sp)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(
-                            onClick = { viewModel.refreshNewsFeed() },
-                            contentPadding = PaddingValues(horizontal = 32.dp),
-                            colors = ButtonDefaults.buttonColors(backgroundColor = primaryMain)
-                        ) {
-                            Text(
-                                text = stringResource(R.string.retry_text),
-                                style = Typography.subtitle2,
-                                color = Color.White
-                            )
-                        }
-                    }
-                } else {
+                if (isConnectedToNetwork.value || newsHeadlines.itemCount > 0 || searchResult.value.isNotEmpty()) {
                     LazyColumn(
                         Modifier
                             .fillMaxSize()
-                            .padding(PaddingValues(horizontal = 24.dp)),
+                            .padding(PaddingValues(horizontal = 16.dp)),
                         state = scrollState,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         item {
+                            Spacer(Modifier.height(16.dp))
                             BasicTextField(
-                                value = searchQuery,
+                                value = viewModel.searchKeyword.value,
                                 onValueChange = {
-                                    searchQuery = it
-                                    if (searchQuery.length >= 3) {
-                                        viewModel.searchNews(searchQuery)
+                                    viewModel.searchKeyword.value = it
+                                    if (viewModel.searchKeyword.value.length >= 3) {
+                                        viewModel.searchNews(viewModel.searchKeyword.value)
                                     }
                                 },
                                 modifier = Modifier
@@ -263,7 +299,7 @@ fun NewsFeed(viewModel: NewsViewModel, itemClickAction: (Article) -> Unit) {
                             ) {
                                 TextFieldDefaults.TextFieldDecorationBox(
                                     innerTextField = it,
-                                    value = searchQuery,
+                                    value = viewModel.searchKeyword.value,
                                     placeholder = {
                                         Text(
                                             text = stringResource(R.string.search_placeholder),
@@ -283,7 +319,7 @@ fun NewsFeed(viewModel: NewsViewModel, itemClickAction: (Article) -> Unit) {
                                 )
                             }
                         }
-                        if (searchQuery.isBlank()) {
+                        if (viewModel.searchKeyword.value.isBlank()) {
                             if (newsHeadlines.itemCount > 0) {
                                 items(newsHeadlines, key = { it.id }) {
                                     it?.let { NewsItem(it, itemClickAction) }
@@ -294,7 +330,8 @@ fun NewsFeed(viewModel: NewsViewModel, itemClickAction: (Article) -> Unit) {
                                             Box(
                                                 Modifier
                                                     .fillMaxWidth()
-                                                    .padding(8.dp),
+                                                    .padding(8.dp)
+                                                    .padding(bottom = 16.dp),
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 CircularProgressIndicator(
@@ -305,10 +342,10 @@ fun NewsFeed(viewModel: NewsViewModel, itemClickAction: (Article) -> Unit) {
                                         }
                                         newsHeadlines.loadState.append is LoadState.Error -> {
                                             /*CircularProgressIndicator(
-                                                Modifier.padding(8.dp),
-                                                color = primaryMain,
-                                                strokeWidth = 4.dp
-                                            )*/
+                                                            Modifier.padding(8.dp),
+                                                            color = primaryMain,
+                                                            strokeWidth = 4.dp
+                                                        )*/
                                         }
                                         newsHeadlines.loadState.append.endOfPaginationReached -> {
                                             Text(
@@ -330,7 +367,42 @@ fun NewsFeed(viewModel: NewsViewModel, itemClickAction: (Article) -> Unit) {
                                     NewsItem(it, itemClickAction)
                                 }
                             else
-                                item { emptyStateView(stringResource(R.string.empty_search_results)) }
+                                item {
+                                    emptyStateView(stringResource(R.string.empty_search_results))
+                                }
+                        }
+                    }
+                } else {
+                    Column(
+                        Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.img_no_connection),
+                            modifier = Modifier
+                                .width(128.dp)
+                                .aspectRatio(1.5f),
+                            contentDescription = ""
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(R.string.no_internet),
+                            color = Color.DarkGray,
+                            fontWeight = FontWeight.Normal,
+                            fontSize = TextUnit(16f, TextUnitType.Sp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = { newsHeadlines.retry() },
+                            contentPadding = PaddingValues(horizontal = 32.dp),
+                            colors = ButtonDefaults.buttonColors(backgroundColor = primaryMain)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.retry_text),
+                                style = Typography.subtitle2,
+                                color = Color.White
+                            )
                         }
                     }
                 }
@@ -358,7 +430,7 @@ fun NewsItem(article: Article, onClick: (Article) -> Unit) {
             .height(120.dp),
         shape = Shapes.small,
         backgroundColor = Color.White,
-        elevation = 8.dp
+        elevation = 4.dp
     ) {
         Row(Modifier.padding(8.dp)) {
             Column(
@@ -367,14 +439,18 @@ fun NewsItem(article: Article, onClick: (Article) -> Unit) {
                     .fillMaxHeight(),
                 verticalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text(text = article.cleanUrl ?: "")
+                Text(text = article.cleanUrl ?: "",
+                    fontStyle = FontStyle.Italic,
+                    color = primaryAux.copy(alpha = 0.6f)
+                )
                 Text(text = article.title ?: "",
                     maxLines = 3,
+                    color = primaryAux,
                     overflow = TextOverflow.Ellipsis,
                     softWrap = true
                 )
                 Text(text = article.publishedDate?.let { getTimeAgoText(it) } ?: "",
-                    style = Typography.caption
+                    style = Typography.caption.copy(color = Color.Gray)
                 )
             }
             Spacer(modifier = Modifier.width(10.dp))

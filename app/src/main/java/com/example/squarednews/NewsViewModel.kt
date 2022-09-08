@@ -1,6 +1,7 @@
 package com.example.squarednews
 
-import androidx.lifecycle.SavedStateHandle
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
@@ -12,29 +13,36 @@ import com.example.squarednews.domain.CheckNetworkConnectionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import java.text.SimpleDateFormat
 import javax.inject.Inject
 
 @HiltViewModel
 class NewsViewModel @Inject constructor(
     private val newsRepository: NewsRepository,
     private val checkNetworkConnectionUseCase: CheckNetworkConnectionUseCase,
-    private val userPreferencesRepository: UserPreferencesRepository,
-    private val stateHandle: SavedStateHandle
+    private val userPreferencesRepository: UserPreferencesRepository
 ) : ViewModel() {
 
-    private val _isNetworkConnected: MutableStateFlow<Boolean> = MutableStateFlow(true)
+    private val _isNetworkConnected: MutableStateFlow<Boolean> = MutableStateFlow(checkNetworkConnectionUseCase())
     val isNetworkConnected: StateFlow<Boolean> = _isNetworkConnected.asStateFlow()
 
-    private val _availableSources: MutableStateFlow<Set<String>> = MutableStateFlow(emptySet())
-    val availableSources: StateFlow<Set<String>> = _availableSources.asStateFlow()
+    private val _availableSources: MutableStateFlow<List<String>> = MutableStateFlow(emptyList())
+    val availableSources: StateFlow<List<String>> = _availableSources.asStateFlow()
 
-    val selectedCountry: StateFlow<String> = userPreferencesRepository.getCountry()
-        .stateIn(viewModelScope, SharingStarted.Eagerly, "IN")
-    private var selectedSources: MutableSet<String> = mutableSetOf()
+    val selectedCountry: Flow<String> = userPreferencesRepository.getCountry()
 
-    var newsHeadlines: Flow<PagingData<Article>> = newsRepository.getNewsHeadlines(selectedCountry.value, selectedSources)
-        .flow.cachedIn(viewModelScope)
+    var selectedSources: MutableStateFlow<Set<String>> = MutableStateFlow(emptySet())
+
+    var tempSelectedSources: MutableState<Set<String>> = mutableStateOf(emptySet())
+
+    @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
+    var newsHeadlines: Flow<PagingData<Article>> =
+        selectedCountry.combine(selectedSources) { country, sources -> country to sources }
+            .debounce(100)
+            .flatMapLatest {
+                newsRepository.getNewsHeadlines(it.first, it.second).flow.cachedIn(viewModelScope)
+            }
+
+    var searchKeyword: MutableState<String> = mutableStateOf("")
 
     private val _searchResults: MutableStateFlow<List<Article>> = MutableStateFlow(emptyList())
     val searchResults: StateFlow<List<Article>> = _searchResults.asStateFlow()
@@ -47,17 +55,13 @@ class NewsViewModel @Inject constructor(
         viewModelScope.launch {
             if (checkNetworkConnectionUseCase()) {
                 _isNetworkConnected.emit(true)
-
-                newsRepository.getSources(selectedCountry.value)
+                newsRepository.getSources(selectedCountry.first())?.let {
+                    _availableSources.emit(it.sources)
+                }
             } else {
                 _isNetworkConnected.emit(false)
             }
         }
-    }
-
-    fun refreshNewsFeed() {
-        newsHeadlines = newsRepository.getNewsHeadlines(selectedCountry.value, selectedSources)
-            .flow.cachedIn(viewModelScope)
     }
 
     fun searchNews(q: String) {
@@ -68,8 +72,11 @@ class NewsViewModel @Inject constructor(
             searchJob = viewModelScope.launch {
                 delay(2000) // Change to 1000ms later
                 if (isActive) {
+                    _searchResults.emit(emptyList())
                     delay(1000)
-                    newsRepository.getNewsBySearchQuery(q)
+                    newsRepository.getNewsBySearchQuery(q)?.let {
+                        _searchResults.emit(it.articles)
+                    }
                 }
             }
         }
@@ -77,7 +84,23 @@ class NewsViewModel @Inject constructor(
 
     fun setSelectedCountry(countryCode: String) {
         viewModelScope.launch {
+            _availableSources.emit(emptyList())
+            selectedSources.emit(emptySet())
             userPreferencesRepository.setCountry(countryCode)
         }
+    }
+
+    fun setSourceSelection(source: String, isSelected: Boolean) {
+        val set = tempSelectedSources.value.toMutableSet()
+        if (isSelected) {
+            set.add(source)
+        } else {
+            set.remove(source)
+        }
+        tempSelectedSources.value = set.sorted().toSet()
+    }
+
+    fun applySelectedSources() {
+        viewModelScope.launch { selectedSources.emit(tempSelectedSources.value) }
     }
 }

@@ -19,9 +19,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.ExperimentalUnitApi
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.squarednews.Constants
@@ -97,7 +101,10 @@ fun newsDetailView(article: Article, onShowStoryClicked: (Article) -> Unit, onBa
             Spacer(modifier = Modifier.height(16.dp))
             Text(text = article.cleanUrl ?: "Unknown source",
                 modifier = Modifier.padding(horizontal = 16.dp),
-                style = Typography.subtitle2.copy(fontStyle = FontStyle.Italic, color = primaryAux)
+                style = Typography.subtitle2.copy(
+                    fontStyle = FontStyle.Italic,
+                    fontWeight = FontWeight.Medium,
+                    color = primaryAux)
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(text = dateTime,
@@ -109,6 +116,7 @@ fun newsDetailView(article: Article, onShowStoryClicked: (Article) -> Unit, onBa
                 modifier = Modifier
                     .weight(1f, fill = false)
                     .padding(horizontal = 16.dp),
+                color = primaryAux,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Justify
             )
