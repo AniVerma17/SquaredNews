@@ -4,4 +4,10 @@
     <style name="Theme.SquaredNews" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:statusBarColor">@color/purple_700</item>
     </style>
+
+    <style name="Theme.SquaredNews.Splash" parent="Theme.SplashScreen" >
+        <item name="windowSplashScreenBackground">@color/ic_launcher_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_logo_white</item>
+        <item name="postSplashScreenTheme">@style/Theme.SquaredNews</item>
+    </style>
 </resources>
