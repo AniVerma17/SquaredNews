@@ -324,36 +324,48 @@ fun NewsFeed(viewModel: NewsViewModel, newsHeadlines: LazyPagingItems<Article>, 
                                     it?.let { NewsItem(it, itemClickAction) }
                                 }
                                 item {
-                                    when {
-                                        newsHeadlines.loadState.append is LoadState.Loading -> {
-                                            Box(
-                                                Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(8.dp)
-                                                    .padding(bottom = 16.dp),
-                                                contentAlignment = Alignment.Center
-                                            ) {
+                                    Column(
+                                        Modifier.fillMaxWidth()
+                                            .padding(8.dp)
+                                            .padding(bottom = 16.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        when {
+                                            newsHeadlines.loadState.append is LoadState.Loading -> {
                                                 CircularProgressIndicator(
                                                     color = primaryMain,
                                                     strokeWidth = 4.dp
                                                 )
                                             }
-                                        }
-                                        newsHeadlines.loadState.append is LoadState.Error -> {
-                                            /*CircularProgressIndicator(
-                                                            Modifier.padding(8.dp),
-                                                            color = primaryMain,
-                                                            strokeWidth = 4.dp
-                                                        )*/
-                                        }
-                                        newsHeadlines.loadState.append.endOfPaginationReached -> {
-                                            Text(
-                                                text = stringResource(R.string.end_of_feed),
-                                                Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(24.dp),
-                                                textAlign = TextAlign.Center
-                                            )
+                                            newsHeadlines.loadState.append is LoadState.Error -> {
+                                                Text(
+                                                    text = stringResource(R.string.api_error_message),
+                                                    color = Color.DarkGray,
+                                                    fontWeight = FontWeight.Normal,
+                                                    fontSize = TextUnit(14f, TextUnitType.Sp)
+                                                )
+                                                Spacer(modifier = Modifier.height(8.dp))
+                                                Button(
+                                                    onClick = { newsHeadlines.retry() },
+                                                    contentPadding = PaddingValues(horizontal = 32.dp),
+                                                    colors = ButtonDefaults.buttonColors(backgroundColor = primaryMain)
+                                                ) {
+                                                    Text(
+                                                        text = stringResource(R.string.retry_text),
+                                                        style = Typography.caption,
+                                                        color = Color.White
+                                                    )
+                                                }
+                                            }
+                                            newsHeadlines.loadState.append.endOfPaginationReached -> {
+                                                Text(
+                                                    text = stringResource(R.string.end_of_feed),
+                                                    Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(24.dp),
+                                                    textAlign = TextAlign.Center
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -484,7 +496,8 @@ fun ItemPreview() {
         Article(
             title = "Lorem ipsum dolor sit amet Lorem fsdffsdffv erfgrgfr rgregr rgrgreregreg rgregregerreregre regregerrere gergregre frgregreggrgregregr rreggge thghigheri igehjgi ierigreig",
             link = "NewsSource",
-            id = "grehg5654gterg"
+            id = "grehg5654gterg",
+            publishedDate = "2022-08-25 17:43:00"
         )
     ) {}
 }

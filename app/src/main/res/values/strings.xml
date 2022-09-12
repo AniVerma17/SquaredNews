@@ -13,4 +13,5 @@
     <string name="end_of_feed">That\'s all for today.</string>
     <string name="empty_news_feed">No news found. Try selecting a different country, or select different sources.</string>
     <string name="empty_search_results">No search results found.</string>
+    <string name="api_error_message">Some error occurred.</string>
 </resources>
