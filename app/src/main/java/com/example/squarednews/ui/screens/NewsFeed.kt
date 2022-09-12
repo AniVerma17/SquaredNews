@@ -67,8 +67,7 @@ fun NewsFeed(viewModel: NewsViewModel, newsHeadlines: LazyPagingItems<Article>, 
     val filterListState = rememberLazyListState()
 
     LaunchedEffect(newsHeadlines.loadState) {
-        println("Refresh effect launched")
-        refreshState.isRefreshing = newsHeadlines.loadState.refresh is LoadState.Loading
+        refreshState.isRefreshing = newsHeadlines.loadState.mediator?.refresh is LoadState.Loading
     }
 
     ModalBottomSheetLayout(
