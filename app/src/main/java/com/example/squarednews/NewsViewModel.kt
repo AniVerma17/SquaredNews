@@ -8,6 +8,7 @@ import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import com.example.squarednews.data.Article
 import com.example.squarednews.data.NewsRepository
+import com.example.squarednews.data.SearchResultState
 import com.example.squarednews.data.preferences.UserPreferencesRepository
 import com.example.squarednews.domain.CheckNetworkConnectionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -44,8 +45,8 @@ class NewsViewModel @Inject constructor(
 
     var searchKeyword: MutableState<String> = mutableStateOf("")
 
-    private val _searchResults: MutableStateFlow<List<Article>> = MutableStateFlow(emptyList())
-    val searchResults: StateFlow<List<Article>> = _searchResults.asStateFlow()
+    private val _searchResults: MutableStateFlow<SearchResultState?> = MutableStateFlow(null)
+    val searchResults: StateFlow<SearchResultState?> = _searchResults.asStateFlow()
 
     lateinit var articleToDisplay: Article
 
@@ -68,16 +69,23 @@ class NewsViewModel @Inject constructor(
         if (searchJob?.isActive == true) {
             searchJob?.cancel()
         }
-        if (checkNetworkConnectionUseCase()) {
-            searchJob = viewModelScope.launch {
-                delay(2000) // Change to 1000ms later
-                if (isActive) {
-                    _searchResults.emit(emptyList())
+        viewModelScope.launch {
+            if (checkNetworkConnectionUseCase()) {
+                searchJob = launch {
                     delay(1000)
-                    newsRepository.getNewsBySearchQuery(q)?.let {
-                        _searchResults.emit(it.articles)
+                    _searchResults.emit(null)
+                    if (isActive && q.isNotBlank()) {
+                        _searchResults.emit(SearchResultState.Loading)
+                        delay(1000)
+                        newsRepository.getNewsBySearchQuery(q)?.let {
+                            _searchResults.emit(SearchResultState.Success(it.articles))
+                        } ?: _searchResults.emit(
+                            SearchResultState.Error(SearchResultState.ErrorType.API_ERROR)
+                        )
                     }
                 }
+            } else {
+                _searchResults.emit(SearchResultState.Error(SearchResultState.ErrorType.NETWORK_ERROR))
             }
         }
     }
