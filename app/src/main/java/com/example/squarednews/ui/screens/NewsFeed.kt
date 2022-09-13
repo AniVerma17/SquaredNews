@@ -39,6 +39,7 @@ import com.example.squarednews.Constants
 import com.example.squarednews.NewsViewModel
 import com.example.squarednews.R
 import com.example.squarednews.data.Article
+import com.example.squarednews.data.SearchResultState
 import com.example.squarednews.ui.theme.*
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.SwipeRefreshIndicator
@@ -48,7 +49,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
-@OptIn(ExperimentalMaterialApi::class, ExperimentalUnitApi::class)
+@OptIn(ExperimentalMaterialApi::class)
 @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
 @Composable
 fun NewsFeed(viewModel: NewsViewModel, newsHeadlines: LazyPagingItems<Article>, itemClickAction: (Article) -> Unit) {
@@ -273,7 +274,7 @@ fun NewsFeed(viewModel: NewsViewModel, newsHeadlines: LazyPagingItems<Article>, 
                 BackHandler(filtersSheetState.isVisible) {
                     coroutineScope.launch { filtersSheetState.hide() }
                 }
-                if (isConnectedToNetwork.value || newsHeadlines.itemCount > 0 || searchResult.value.isNotEmpty()) {
+                if (isConnectedToNetwork.value || newsHeadlines.itemCount > 0 || searchResult.value is SearchResultState.Success) {
                     LazyColumn(
                         Modifier
                             .fillMaxSize()
@@ -286,9 +287,8 @@ fun NewsFeed(viewModel: NewsViewModel, newsHeadlines: LazyPagingItems<Article>, 
                             BasicTextField(
                                 value = viewModel.searchKeyword.value,
                                 onValueChange = {
-                                    viewModel.searchKeyword.value = it
-                                    if (viewModel.searchKeyword.value.length >= 3) {
-                                        viewModel.searchNews(viewModel.searchKeyword.value)
+                                    viewModel.searchKeyword.value = it.also {
+                                        viewModel.searchNews(it)
                                     }
                                 },
                                 modifier = Modifier
@@ -318,7 +318,7 @@ fun NewsFeed(viewModel: NewsViewModel, newsHeadlines: LazyPagingItems<Article>, 
                                 )
                             }
                         }
-                        if (viewModel.searchKeyword.value.isBlank()) {
+                        if (viewModel.searchKeyword.value.isBlank() || searchResult.value == null) {
                             if (newsHeadlines.itemCount > 0) {
                                 items(newsHeadlines, key = { it.id }) {
                                     it?.let { NewsItem(it, itemClickAction) }
@@ -331,33 +331,14 @@ fun NewsFeed(viewModel: NewsViewModel, newsHeadlines: LazyPagingItems<Article>, 
                                         horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
                                         when {
-                                            newsHeadlines.loadState.append is LoadState.Loading -> {
+                                            newsHeadlines.loadState.append is LoadState.Loading ->
                                                 CircularProgressIndicator(
                                                     color = primaryMain,
                                                     strokeWidth = 4.dp
                                                 )
-                                            }
-                                            newsHeadlines.loadState.append is LoadState.Error -> {
-                                                Text(
-                                                    text = stringResource(R.string.api_error_message),
-                                                    color = Color.DarkGray,
-                                                    fontWeight = FontWeight.Normal,
-                                                    fontSize = TextUnit(14f, TextUnitType.Sp)
-                                                )
-                                                Spacer(modifier = Modifier.height(8.dp))
-                                                Button(
-                                                    onClick = { newsHeadlines.retry() },
-                                                    contentPadding = PaddingValues(horizontal = 32.dp),
-                                                    colors = ButtonDefaults.buttonColors(backgroundColor = primaryMain)
-                                                ) {
-                                                    Text(
-                                                        text = stringResource(R.string.retry_text),
-                                                        style = Typography.caption,
-                                                        color = Color.White
-                                                    )
-                                                }
-                                            }
-                                            newsHeadlines.loadState.append.endOfPaginationReached -> {
+                                            newsHeadlines.loadState.append is LoadState.Error ->
+                                                apiErrorStateView { newsHeadlines.retry() }
+                                            newsHeadlines.loadState.append.endOfPaginationReached ->
                                                 Text(
                                                     text = stringResource(R.string.end_of_feed),
                                                     Modifier
@@ -365,7 +346,6 @@ fun NewsFeed(viewModel: NewsViewModel, newsHeadlines: LazyPagingItems<Article>, 
                                                         .padding(24.dp),
                                                     textAlign = TextAlign.Center
                                                 )
-                                            }
                                         }
                                     }
                                 }
@@ -373,49 +353,43 @@ fun NewsFeed(viewModel: NewsViewModel, newsHeadlines: LazyPagingItems<Article>, 
                                 item { emptyStateView(stringResource(R.string.empty_news_feed)) }
                             }
                         } else {
-                            if (searchResult.value.isNotEmpty())
-                                items(items = searchResult.value, key = { it.id }) {
-                                    NewsItem(it, itemClickAction)
+                            searchResult.value?.let { response ->
+                                when (response) {
+                                    SearchResultState.Loading -> item {
+                                        Box(Modifier.fillMaxWidth(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            CircularProgressIndicator(
+                                                color = primaryMain,
+                                                strokeWidth = 4.dp
+                                            )
+                                        }
+                                    }
+                                    is SearchResultState.Error -> when (response.errorType) {
+                                        SearchResultState.ErrorType.NETWORK_ERROR -> item {
+                                            noConnectionStateView {
+                                                viewModel.searchNews(viewModel.searchKeyword.value)
+                                            }
+                                        }
+                                        SearchResultState.ErrorType.API_ERROR -> item {
+                                            apiErrorStateView {
+                                                viewModel.searchNews(viewModel.searchKeyword.value)
+                                            }
+                                        }
+                                    }
+                                    is SearchResultState.Success -> if (response.list.isNotEmpty())
+                                        items(items = response.list, key = { it.id }) {
+                                            NewsItem(it, itemClickAction)
+                                        }
+                                    else item {
+                                        emptyStateView(stringResource(R.string.empty_search_results))
+                                    }
                                 }
-                            else
-                                item {
-                                    emptyStateView(stringResource(R.string.empty_search_results))
-                                }
+                            }
                         }
                     }
                 } else {
-                    Column(
-                        Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.img_no_connection),
-                            modifier = Modifier
-                                .width(128.dp)
-                                .aspectRatio(1.5f),
-                            contentDescription = ""
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = stringResource(R.string.no_internet),
-                            color = Color.DarkGray,
-                            fontWeight = FontWeight.Normal,
-                            fontSize = TextUnit(16f, TextUnitType.Sp)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(
-                            onClick = { newsHeadlines.retry() },
-                            contentPadding = PaddingValues(horizontal = 32.dp),
-                            colors = ButtonDefaults.buttonColors(backgroundColor = primaryMain)
-                        ) {
-                            Text(
-                                text = stringResource(R.string.retry_text),
-                                style = Typography.subtitle2,
-                                color = Color.White
-                            )
-                        }
-                    }
+                    noConnectionStateView { newsHeadlines.retry() }
                 }
             }
         }
@@ -430,6 +404,76 @@ fun emptyStateView(displayText: String) {
             Modifier.padding(24.dp),
             textAlign = TextAlign.Center
         )
+    }
+}
+
+@OptIn(ExperimentalUnitApi::class)
+@Composable
+fun noConnectionStateView(onRetryButtonClick: () -> Unit) {
+    Column(
+        Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.img_no_connection),
+            modifier = Modifier
+                .width(128.dp)
+                .aspectRatio(1.5f),
+            contentDescription = ""
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = stringResource(R.string.no_internet),
+            color = Color.DarkGray,
+            fontWeight = FontWeight.Normal,
+            fontSize = TextUnit(16f, TextUnitType.Sp)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(
+            onClick = onRetryButtonClick,
+            contentPadding = PaddingValues(horizontal = 32.dp),
+            colors = ButtonDefaults.buttonColors(backgroundColor = primaryMain)
+        ) {
+            Text(
+                text = stringResource(R.string.retry_text),
+                style = Typography.subtitle2,
+                color = Color.White
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalUnitApi::class)
+@Composable
+fun apiErrorStateView(onRetryButtonClick: () -> Unit) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+            .padding(bottom = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = stringResource(R.string.api_error_message),
+            color = Color.DarkGray,
+            fontWeight = FontWeight.Normal,
+            fontSize = TextUnit(14f, TextUnitType.Sp)
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(
+            onClick = onRetryButtonClick,
+            contentPadding = PaddingValues(horizontal = 32.dp),
+            colors = ButtonDefaults.buttonColors(
+                backgroundColor = primaryMain
+            )
+        ) {
+            Text(
+                text = stringResource(R.string.retry_text),
+                style = Typography.caption,
+                color = Color.White
+            )
+        }
     }
 }
 
