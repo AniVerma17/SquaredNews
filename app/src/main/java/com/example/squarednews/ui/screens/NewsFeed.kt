@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
@@ -538,11 +539,11 @@ fun ItemPreview() {
     NewsItem(
         Article(
             title = "Lorem ipsum dolor sit amet Lorem fsdffsdffv erfgrgfr rgregr rgrgreregreg rgregregerreregre regregerrere gergregre frgregreggrgregregr rreggge thghigheri igehjgi ierigreig",
-            link = "NewsSource",
+            cleanUrl = "NewsSource",
             id = "grehg5654gterg",
             publishedDate = "2022-08-25 17:43:00"
         ),
-        ParseDateStringUseCase()
+        ParseDateStringUseCase(LocalContext.current)
     ) {}
 }
 

@@ -145,5 +145,5 @@ fun newsDetailPreview() {
         id = "greg65teg34",
         summary = "No description",
         publishedDate = "2022-08-25 17:43:00"
-    ), {}, ParseDateStringUseCase()) {}
+    ), {}, ParseDateStringUseCase(LocalContext.current)) {}
 }
