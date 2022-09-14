@@ -11,6 +11,7 @@ import com.example.squarednews.data.NewsRepository
 import com.example.squarednews.data.SearchResultState
 import com.example.squarednews.data.preferences.UserPreferencesRepository
 import com.example.squarednews.domain.CheckNetworkConnectionUseCase
+import com.example.squarednews.domain.ParseDateStringUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -19,8 +20,9 @@ import javax.inject.Inject
 @HiltViewModel
 class NewsViewModel @Inject constructor(
     private val newsRepository: NewsRepository,
+    private val userPreferencesRepository: UserPreferencesRepository,
     private val checkNetworkConnectionUseCase: CheckNetworkConnectionUseCase,
-    private val userPreferencesRepository: UserPreferencesRepository
+    val parseDateStringUseCase: ParseDateStringUseCase
 ) : ViewModel() {
 
     private val _isNetworkConnected: MutableStateFlow<Boolean> = MutableStateFlow(checkNetworkConnectionUseCase())

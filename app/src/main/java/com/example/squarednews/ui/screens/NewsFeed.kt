@@ -40,13 +40,13 @@ import com.example.squarednews.NewsViewModel
 import com.example.squarednews.R
 import com.example.squarednews.data.Article
 import com.example.squarednews.data.SearchResultState
+import com.example.squarednews.domain.ParseDateStringUseCase
 import com.example.squarednews.ui.theme.*
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.SwipeRefreshIndicator
 import com.google.accompanist.swiperefresh.SwipeRefreshState
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -321,7 +321,7 @@ fun NewsFeed(viewModel: NewsViewModel, newsHeadlines: LazyPagingItems<Article>, 
                         if (viewModel.searchKeyword.value.isBlank() || searchResult.value == null) {
                             if (newsHeadlines.itemCount > 0) {
                                 items(newsHeadlines, key = { it.id }) {
-                                    it?.let { NewsItem(it, itemClickAction) }
+                                    it?.let { NewsItem(it, viewModel.parseDateStringUseCase, itemClickAction) }
                                 }
                                 item {
                                     Column(
@@ -379,7 +379,7 @@ fun NewsFeed(viewModel: NewsViewModel, newsHeadlines: LazyPagingItems<Article>, 
                                     }
                                     is SearchResultState.Success -> if (response.list.isNotEmpty())
                                         items(items = response.list, key = { it.id }) {
-                                            NewsItem(it, itemClickAction)
+                                            NewsItem(it, viewModel.parseDateStringUseCase, itemClickAction)
                                         }
                                     else item {
                                         emptyStateView(stringResource(R.string.empty_search_results))
@@ -478,7 +478,7 @@ fun apiErrorStateView(onRetryButtonClick: () -> Unit) {
 }
 
 @Composable
-fun NewsItem(article: Article, onClick: (Article) -> Unit) {
+fun NewsItem(article: Article, parseDateStringUseCase: ParseDateStringUseCase, onClick: (Article) -> Unit) {
     Card(
         modifier = Modifier
             .clickable { onClick(article) }
@@ -504,7 +504,7 @@ fun NewsItem(article: Article, onClick: (Article) -> Unit) {
                     overflow = TextOverflow.Ellipsis,
                     softWrap = true
                 )
-                Text(text = article.publishedDate?.let { getTimeAgoText(it) } ?: "",
+                Text(text = article.publishedDate?.let { getTimeAgoText(parseDateStringUseCase, it) } ?: "",
                     style = Typography.caption.copy(color = Color.Gray)
                 )
             }
@@ -521,17 +521,16 @@ fun NewsItem(article: Article, onClick: (Article) -> Unit) {
     }
 }
 
-fun getTimeAgoText(dateTime: String): String? = SimpleDateFormat(Constants.DATE_PATTERN).apply {
-    timeZone = TimeZone.getTimeZone("IST")
-}.parse(dateTime)?.time?.let {
-    when (val diff = (Date().time - it) / 60000) {
-        0L -> "Just now"
-        in 1 until 60 -> "$diff min ago"
-        in 60 until 1440 -> "${diff / 60} hrs ago"
-        in 1440 until 10080 -> "${diff / 1440} days ago"
-        else -> "${diff / 10080} weeks ago"
+fun getTimeAgoText(parseDateStringUseCase: ParseDateStringUseCase, dateTime: String): String? =
+    parseDateStringUseCase(dateTime)?.time?.let {
+        when (val diff = (Date().time - it) / 60000) {
+            0L -> "Just now"
+            in 1 until 60 -> "$diff min ago"
+            in 60 until 1440 -> "${diff / 60} hrs ago"
+            in 1440 until 10080 -> "${diff / 1440} days ago"
+            else -> "${diff / 10080} weeks ago"
+        }
     }
-}
 
 @Preview
 @Composable
@@ -542,7 +541,8 @@ fun ItemPreview() {
             link = "NewsSource",
             id = "grehg5654gterg",
             publishedDate = "2022-08-25 17:43:00"
-        )
+        ),
+        ParseDateStringUseCase()
     ) {}
 }
 

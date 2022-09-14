@@ -23,21 +23,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.ExperimentalUnitApi
-import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.example.squarednews.Constants
 import com.example.squarednews.NewsViewModel
 import com.example.squarednews.R
 import com.example.squarednews.data.Article
+import com.example.squarednews.domain.ParseDateStringUseCase
 import com.example.squarednews.ui.theme.Typography
 import com.example.squarednews.ui.theme.primaryAux
 import com.example.squarednews.ui.theme.primaryMain
 import com.example.squarednews.ui.theme.secondaryMain
 import java.text.SimpleDateFormat
-import java.util.*
 
 @Composable
 fun NewsDetail(viewModel: NewsViewModel, onBackPress: () -> Unit) {
@@ -46,16 +42,19 @@ fun NewsDetail(viewModel: NewsViewModel, onBackPress: () -> Unit) {
         onShowStoryClicked = {
             context.startActivity(Intent(Intent.ACTION_VIEW).setData(Uri.parse(it.link)))
         },
+        viewModel.parseDateStringUseCase,
         onBackPress = onBackPress
     )
 }
 
 @Composable
-fun newsDetailView(article: Article, onShowStoryClicked: (Article) -> Unit, onBackPress: () -> Unit) {
+fun newsDetailView(article: Article,
+                   onShowStoryClicked: (Article) -> Unit,
+                   parseDateStringUseCase: ParseDateStringUseCase,
+                   onBackPress: () -> Unit
+) {
     val dateTime = article.publishedDate?.let { date ->
-        SimpleDateFormat(Constants.DATE_PATTERN).apply {
-            timeZone = TimeZone.getTimeZone("IST")
-        }.parse(date)?.let {
+        parseDateStringUseCase(date)?.let {
             SimpleDateFormat("dd MMM, yyyy 'at' h:mm a").format(it)
         }
     } ?: "Unknown date"
@@ -146,5 +145,5 @@ fun newsDetailPreview() {
         id = "greg65teg34",
         summary = "No description",
         publishedDate = "2022-08-25 17:43:00"
-    ), {}) {}
+    ), {}, ParseDateStringUseCase()) {}
 }
