@@ -18,12 +18,14 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -326,7 +328,8 @@ fun NewsFeed(viewModel: NewsViewModel, newsHeadlines: LazyPagingItems<Article>, 
                                 }
                                 item {
                                     Column(
-                                        Modifier.fillMaxWidth()
+                                        Modifier
+                                            .fillMaxWidth()
                                             .padding(8.dp)
                                             .padding(bottom = 16.dp),
                                         horizontalAlignment = Alignment.CenterHorizontally
@@ -478,6 +481,7 @@ fun apiErrorStateView(onRetryButtonClick: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun NewsItem(article: Article, parseDateStringUseCase: ParseDateStringUseCase, onClick: (Article) -> Unit) {
     Card(
@@ -505,7 +509,14 @@ fun NewsItem(article: Article, parseDateStringUseCase: ParseDateStringUseCase, o
                     overflow = TextOverflow.Ellipsis,
                     softWrap = true
                 )
-                Text(text = article.publishedDate?.let { getTimeAgoText(parseDateStringUseCase, it) } ?: "",
+                Text(text = article.publishedDate?.let { s ->
+                    getTimeDifference(parseDateStringUseCase, s)?.let {
+                        if (it.first == 0)
+                            it.second
+                        else
+                            pluralStringResource(R.plurals.time_ago, it.first, it.first, it.second)
+                    }
+                } ?: "",
                     style = Typography.caption.copy(color = Color.Gray)
                 )
             }
@@ -522,14 +533,14 @@ fun NewsItem(article: Article, parseDateStringUseCase: ParseDateStringUseCase, o
     }
 }
 
-fun getTimeAgoText(parseDateStringUseCase: ParseDateStringUseCase, dateTime: String): String? =
+fun getTimeDifference(parseDateStringUseCase: ParseDateStringUseCase, dateTime: String): Pair<Int, String>? =
     parseDateStringUseCase(dateTime)?.time?.let {
-        when (val diff = (Date().time - it) / 60000) {
-            0L -> "Just now"
-            in 1 until 60 -> "$diff min ago"
-            in 60 until 1440 -> "${diff / 60} hrs ago"
-            in 1440 until 10080 -> "${diff / 1440} days ago"
-            else -> "${diff / 10080} weeks ago"
+        when (val diff = ((Date().time - it) / 60000).toInt()) {
+            0 -> 0 to "Just now"
+            in 1 until 60 -> diff to "min"
+            in 60 until 1440 -> (diff / 60) to "hr"
+            in 1440 until 10080 -> (diff / 1440) to "day"
+            else -> (diff / 10080) to "week"
         }
     }
 

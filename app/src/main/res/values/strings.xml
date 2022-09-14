@@ -14,4 +14,9 @@
     <string name="empty_news_feed">No news found. Try selecting a different country, or select different sources.</string>
     <string name="empty_search_results">No search results found.</string>
     <string name="api_error_message">Some error occurred.</string>
+
+    <plurals name="time_ago">
+        <item quantity="one">%1$d %2$s ago</item>
+        <item quantity="other">%1$d %2$ss ago</item>
+    </plurals>
 </resources>
