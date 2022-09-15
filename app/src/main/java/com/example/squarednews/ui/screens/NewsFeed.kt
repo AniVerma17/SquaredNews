@@ -23,7 +23,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -554,7 +553,7 @@ fun ItemPreview() {
             id = "grehg5654gterg",
             publishedDate = "2022-08-25 17:43:00"
         ),
-        ParseDateStringUseCase(LocalContext.current)
+        ParseDateStringUseCase()
     ) {}
 }
 
