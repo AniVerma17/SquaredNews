@@ -2,9 +2,9 @@ package com.example.squarednews
 
 object Constants {
 
-    val PAGE_SIZE = 10
+    const val PAGE_SIZE = 10
 
-    val DATE_PATTERN = "yyyy-MM-dd HH:mm:ss z"
+    const val DATE_PATTERN = "yyyy-MM-dd HH:mm:ss z"
 
     val countries: Map<String, String> = mapOf(
         "IN" to "India",
