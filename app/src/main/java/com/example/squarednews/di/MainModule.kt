@@ -10,7 +10,6 @@ import com.example.squarednews.data.NewsApiService
 import com.example.squarednews.data.db.NewsDb
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.remoteconfig.ktx.remoteConfig
-import com.squareup.moshi.Moshi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
