@@ -159,8 +159,6 @@ fun NewsFeed(viewModel: NewsViewModel, newsHeadlines: LazyPagingItems<Article>, 
                         onClick = {
                             coroutineScope.launch {
                                 filtersSheetState.hide()
-                                println("cond 1: ${selectedCountry != selectedCountryCode.value}")
-                                println("cond 1: ${viewModel.selectedSources.value != viewModel.tempSelectedSources.value.toList()}")
                                 scrollState.scrollToItem(0)
                             }
                             if (isCountryFilterSelected) {
@@ -221,7 +219,9 @@ fun NewsFeed(viewModel: NewsViewModel, newsHeadlines: LazyPagingItems<Article>, 
                             modifier = Modifier.clickable {
                                 isCountryFilterSelected = true
                                 selectedCountry = selectedCountryCode.value
-                                coroutineScope.launch { filtersSheetState.show() }
+                                if (viewModel.searchKeyword.value.isBlank()) {
+                                    coroutineScope.launch { filtersSheetState.show() }
+                                }
                             }
                         ) {
                             Icon(imageVector = Icons.Filled.LocationOn,
@@ -238,25 +238,29 @@ fun NewsFeed(viewModel: NewsViewModel, newsHeadlines: LazyPagingItems<Article>, 
                 }
             },
             floatingActionButton = {
-                FloatingActionButton(
-                    onClick = {
-                        isCountryFilterSelected = false
-                        if (sourcesList.value.isEmpty()) {
-                            viewModel.getAllNewsSources()
-                        } else {
-                            viewModel.tempSelectedSources.value = viewModel.selectedSources.value
-                        }
-                        coroutineScope.launch {
-                            filterListState.scrollToItem(0)
-                            filtersSheetState.show()
-                        }
-                    },
-                    backgroundColor = primaryMain,
-                    contentColor = Color.White
-                ) {
-                    Icon(painter = painterResource(R.drawable.ic_filter),
-                        contentDescription = ""
-                    )
+                if (viewModel.searchKeyword.value.isBlank()) {
+                    FloatingActionButton(
+                        onClick = {
+                            isCountryFilterSelected = false
+                            if (sourcesList.value.isEmpty()) {
+                                viewModel.getAllNewsSources()
+                            } else {
+                                viewModel.tempSelectedSources.value =
+                                    viewModel.selectedSources.value
+                            }
+                            coroutineScope.launch {
+                                filterListState.scrollToItem(0)
+                                filtersSheetState.show()
+                            }
+                        },
+                        backgroundColor = primaryMain,
+                        contentColor = Color.White
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_filter),
+                            contentDescription = ""
+                        )
+                    }
                 }
             }
         ) {
