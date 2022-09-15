@@ -329,8 +329,7 @@ fun NewsFeed(viewModel: NewsViewModel, newsHeadlines: LazyPagingItems<Article>, 
                                     Column(
                                         Modifier
                                             .fillMaxWidth()
-                                            .padding(8.dp)
-                                            .padding(bottom = 16.dp),
+                                            .padding(8.dp),
                                         horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
                                         when {
@@ -380,11 +379,12 @@ fun NewsFeed(viewModel: NewsViewModel, newsHeadlines: LazyPagingItems<Article>, 
                                             }
                                         }
                                     }
-                                    is SearchResultState.Success -> if (response.list.isNotEmpty())
+                                    is SearchResultState.Success -> if (response.list.isNotEmpty()) {
                                         items(items = response.list, key = { it.id }) {
                                             NewsItem(it, viewModel.parseDateStringUseCase, itemClickAction)
                                         }
-                                    else item {
+                                        item { Spacer(Modifier.height(16.dp)) }
+                                    } else item {
                                         emptyStateView(stringResource(R.string.empty_search_results))
                                     }
                                 }
