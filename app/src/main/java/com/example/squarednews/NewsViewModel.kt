@@ -44,6 +44,7 @@ class NewsViewModel @Inject constructor(
             .flatMapLatest {
                 newsRepository.getNewsHeadlines(it.first, it.second).flow.cachedIn(viewModelScope)
             }
+            .cachedIn(viewModelScope)
 
     var searchKeyword: MutableState<String> = mutableStateOf("")
 
